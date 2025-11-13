@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  intersight-mcp:
+    container_name: intersight-mcp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+    # Mount secrets instead of baking into the image
+    volumes:
+      - ./NSDev01-SecretKey.txt:/app/NSDev01-SecretKey.txt:ro
+      - ./.env:/app/.env:ro
+
+    environment:
+      # Optional — override env vars via compose
+      PYTHONUNBUFFERED: "1"
+      FASTMCP_TRANSPORT: "http"
+      FASTMCP_PORT: "8000"
+      FASTMCP_HOST: "0.0.0.0"
+
+    # Security — prevents container from running as root
+    # (Optional: uncomment if your app doesn't require root)
+    # user: "1000:1000"

@@ -1,0 +1,83 @@
+# ------------------------------
+# PYTHON
+# ------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.sqlite3
+
+# ------------------------------
+# ENVIRONMENTS
+# ------------------------------
+.env
+*.env
+.venv/
+venv/
+ENV/
+env/
+
+# ------------------------------
+# INERSIGHT SENSITIVE FILES
+# ------------------------------
+NSDev01-SecretKey.txt
+*SecretKey.txt
+intersight_key.txt
+intersight_secret.txt
+*.pem
+*.key
+
+# Don't commit raw Intersight REST keys
+*.rsa
+*.ecdsa
+
+# ------------------------------
+# FASTMCP
+# ------------------------------
+fastmcp.json
+fastmcp_cache/
+mcp_sessions/
+
+# ------------------------------
+# LOGS
+# ------------------------------
+logs/
+*.log
+*.out
+*.err
+
+# ------------------------------
+# OS/EDITOR FILES
+# ------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Windows junk
+$RECYCLE.BIN/
+*.lnk
+
+# ------------------------------
+# PACKAGES / BUILD
+# ------------------------------
+dist/
+build/
+*.egg-info/
+pip-wheel-metadata/
+
+# ------------------------------
+# DOCKER (if you add Docker later)
+# ------------------------------
+docker-compose.override.yml
+.docker/
+*.tar
+
+# ------------------------------
+# MISC
+# ------------------------------
+*.bak
+*.tmp
