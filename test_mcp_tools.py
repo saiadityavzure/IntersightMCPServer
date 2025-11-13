@@ -19,8 +19,8 @@ async def test_get_organization_list():
 
 async def main():
     # Run whichever tools you want to test
-    # await test_list_physical_summaries()
-    await test_get_organization_list()     # Uncomment after creating this tool
+    await test_list_physical_summaries()
+    # await test_get_organization_list()     # Uncomment after creating this tool
 
 if __name__ == "__main__":
     asyncio.run(main())

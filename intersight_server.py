@@ -13,25 +13,40 @@ from intersight.exceptions import ApiException
 from models.organization import Organization
 
 
-mcp = FastMCP("Intersight MCP Server")
+mcp = FastMCP("IntersightMCPServer")
 
 
-@mcp.tool
+# ------------------------------------------------------------------
+# 🔹 Simple greeting test tool (works for health checks)
+# ------------------------------------------------------------------
+@mcp.tool(
+    name="greet_user",
+    description="Returns a friendly greeting for the provided name.",
+    tags={"utility", "test"},
+    meta={"version": "1.0"}
+)
 def greet(name: str) -> str:
     return f"Hello, {name}!"
 
 
 @mcp.tool
+def calculate_sum(a: int, b: int) -> int:
+    """Calculate sum with return annotation."""
+    return a + b  # Returns the sum of a and b
+
+
+# ------------------------------------------------------------------
+# 🔹 Physical Summaries Tool
+# ------------------------------------------------------------------
+@mcp.tool(
+    name="list_physical_summaries",
+    description="Fetches a list of compute PhysicalSummaries from Cisco Intersight.",
+    tags={"compute", "hardware", "summaries"},
+    meta={"version": "1.0", "endpoint": "/compute/PhysicalSummaries"}
+)
 def list_physical_summaries(filter: str = None, top: int = 25):
     """
     Fetch compute PhysicalSummaries from Cisco Intersight.
-
-    Args:
-        filter (str): Optional OData filter string
-        top (int): Max results to return (default: 25)
-
-    Returns:
-        List of compute.PhysicalSummary objects as dicts
     """
     client = intersight_client_connection()
     compute = compute_api.ComputeApi(client)
@@ -60,8 +75,14 @@ def list_physical_summaries(filter: str = None, top: int = 25):
         }
     
 
+# ------------------------------------------------------------------
+# 🔹 Organization List Tool (REST)
+# ------------------------------------------------------------------
 @mcp.tool(
-    description="Returns all Organizations from Cisco Intersight."
+    name="get_organization_list",
+    description="Returns all Organizations from Cisco Intersight using the REST API.",
+    tags={"organization", "iam", "rest"},
+    meta={"version": "1.0", "endpoint": "/organization/Organizations"}
 )
 def get_organization_list() -> list[Organization]:
     session, endpoint = get_intersight_rest_session()
