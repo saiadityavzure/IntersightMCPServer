@@ -94,7 +94,7 @@ async def test_create_a_vm_through_ico():
     print("\n=== Testing create_a_vm_through_ico ===")
     async with Client(MCP_ENDPOINT) as client:
         result = await client.call_tool("create_a_vm_through_ico", {
-            "vm_name_value": "TestVM01",
+            "vm_name_value": "TestVM11142025",
             "vm_cpu_value": "4",
             "vm_mem_value": "1024",
             "vm_network_value": "vlan70",
@@ -108,8 +108,8 @@ async def test_create_vm_snapshot():
     print("\n=== Testing create_vm_snapshot ===")
     async with Client(MCP_ENDPOINT) as client:
         result = await client.call_tool("create_vm_snapshot", {
-            "vm_name_value": "TestVM01",
-            "vm_snapshot_name_value": "PreUpgradeSnapshot",
+            "vm_name_value": "TestVM11142025",
+            "vm_snapshot_name_value": "SNap123",
             "vm_snapshot_desc_value": "Snapshot before system upgrade"
         })
         print("\nResult:")
@@ -144,7 +144,7 @@ async def test_power_on_vm():
     async with Client(MCP_ENDPOINT) as client:
         result = await client.call_tool(
             "power_on_a_vm",
-            {"vm_name": "TestVM01"}   # <-- change to valid VM name
+            {"vm_name": "TestVM11142025"}   # <-- change to valid VM name
         )
         print("\nResult:")
         print(result)
@@ -158,7 +158,7 @@ async def test_power_off_vm():
     async with Client(MCP_ENDPOINT) as client:
         result = await client.call_tool(
             "power_off_a_vm",
-            {"vm_name": "TestVM01"}   # <-- change to valid VM name
+            {"vm_name": "TestVM11142025"}   # <-- change to valid VM name
         )
         print("\nResult:")
         print(result)
@@ -207,11 +207,12 @@ async def main():
     # await test_modify_vm_network()
     # await test_migrate_a_vm()
     # await test_power_off_vm()
-    # await test_power_on_vm()
+    await test_power_on_vm()
+
     # await test_get_vm_cpu_utilization()
     # await test_get_vm_memory_utilization()
-    await test_get_virtual_machines_powerstatus_on()
-    await test_get_virtual_machines_powerstatus_off()   
+    # await test_get_virtual_machines_powerstatus_on()
+    # await test_get_virtual_machines_powerstatus_off()   
     
     
 
