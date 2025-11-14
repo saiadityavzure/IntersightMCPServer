@@ -164,6 +164,33 @@ async def test_power_off_vm():
         print(result)
 
 
+
+async def test_get_vm_cpu_utilization():
+    async with Client(MCP_ENDPOINT) as client:
+        result = await client.call_tool("get_vm_cpu_utilization", {})
+        print(result)
+
+
+async def test_get_vm_memory_utilization():
+    async with Client(MCP_ENDPOINT) as client:
+        result = await client.call_tool("get_vm_memory_utilization", {})
+        print(result)
+
+
+async def test_get_virtual_machines_powerstatus_on():
+    async with Client(MCP_ENDPOINT) as client:
+        result = await client.call_tool("get_virtual_machines_powerstatus", {"power_state": "on"})
+        print(result)
+
+
+async def test_get_virtual_machines_powerstatus_off():
+    async with Client(MCP_ENDPOINT) as client:
+        result = await client.call_tool("get_virtual_machines_powerstatus", {"power_state": "off"})
+        print(result)
+
+
+
+
 async def main():
     # Run whichever tools you want to test
     # await test_generate_server_data_report()
@@ -180,7 +207,11 @@ async def main():
     # await test_modify_vm_network()
     # await test_migrate_a_vm()
     # await test_power_off_vm()
-    await test_power_on_vm()
+    # await test_power_on_vm()
+    # await test_get_vm_cpu_utilization()
+    # await test_get_vm_memory_utilization()
+    await test_get_virtual_machines_powerstatus_on()
+    await test_get_virtual_machines_powerstatus_off()   
     
     
 

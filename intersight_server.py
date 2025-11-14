@@ -26,6 +26,10 @@ from toolsfile.virtualmachinemanagement.modify_vm_network_tool import register_m
 from toolsfile.virtualmachinemanagement.migrate_vm_tool import register_migrate_vm_tool
 from toolsfile.virtualmachinemanagement.power_vm_tools import register_vm_power_tools
 
+#Virtual Machine Info Tools
+from toolsfile.virtualmachineinfo.vm_utilization_tools import register_vm_utilization_tools
+from toolsfile.virtualmachineinfo.vm_powerstatus_tool import register_vm_powerstatus_tool
+
 mcp = FastMCP("IntersightMCPServer")
 
 
@@ -78,6 +82,9 @@ register_create_vm_snapshot_tool(mcp)
 register_modify_vm_network_tool(mcp)
 # register_migrate_vm_tool(mcp)
 register_vm_power_tools(mcp)
+
+register_vm_utilization_tools(mcp)
+register_vm_powerstatus_tool(mcp)
 
 if __name__ == "__main__":
     mcp.run(transport="http", host="0.0.0.0", port=8000)
