@@ -1,7 +1,7 @@
 import asyncio
 from fastmcp import Client
 
-MCP_ENDPOINT = "http://localhost:8000/mcp"
+MCP_ENDPOINT = "http://10.20.1.53:8000/mcp"
 
 
 # ---------------------------------------
@@ -200,14 +200,14 @@ async def main():
     # await test_get_organization_list()     # Uncomment after creating this tool
     # await test_fabric_interconnect_report()
     # await test_health_check()
-    # await test_tools_info()
+    await test_tools_info()
 
     # await test_create_a_vm_through_ico()
     # await test_create_vm_snapshot()
     # await test_modify_vm_network()
     # await test_migrate_a_vm()
     # await test_power_off_vm()
-    await test_power_on_vm()
+    # await test_power_on_vm()
 
     # await test_get_vm_cpu_utilization()
     # await test_get_vm_memory_utilization()

@@ -56,10 +56,7 @@ def health_check() -> dict:
     }
 
 
-@mcp.tool
-def calculate_sum(a: int, b: int) -> int:
-    """Calculate sum with return annotation."""
-    return a + b  # Returns the sum of a and b
+
 
 
 ##############################################################
@@ -70,7 +67,6 @@ def calculate_sum(a: int, b: int) -> int:
 # Report Tools
 register_server_data_report_tool(mcp)
 register_organization_tools(mcp)
-register_fabric_interconnect_tools(mcp)
 register_fabric_interconnect_tools(mcp)
 register_chassis_data_report_tool(mcp)
 register_dimm_mirroring_tool(mcp)
