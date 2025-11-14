@@ -7,19 +7,24 @@ load_dotenv()
 from datetime import datetime
 import platform
 
-from utils.intersight_auth import intersight_client_connection
-from utils.intersight_rest import get_intersight_rest_session
-
 from intersight.api import compute_api
 from intersight.exceptions import ApiException
 
 
 # Importing the Tools from the respective files to register with MCP
 from toolsfile.organization_tools import register_organization_tools
-from toolsfile.compute.compute_physical_summaries import register_physical_summary_tools
-from toolsfile.network.fabric_interconnect_tools import register_fabric_interconnect_tools
-from toolsfile.network.fabric_interconnect_tools import register_fabric_interconnect_tools
+from toolsfile.ReportTools.server_data_report import register_server_data_report_tool
+from toolsfile.ReportTools.fabric_interconnect_tools import register_fabric_interconnect_tools
+from toolsfile.ReportTools.chassis_data_report import register_chassis_data_report_tool
+from toolsfile.ReportTools.dimm_mirroring_report import register_dimm_mirroring_tool
+from toolsfile.ReportTools.intersight_alarms_report import register_intersight_alarm_tool
 
+#Virtual Machine Management Tools can be registered here as needed
+from toolsfile.virtualmachinemanagement.create_vm_tool import register_create_vm_tool
+from toolsfile.virtualmachinemanagement.create_vm_snapshot_tool import register_create_vm_snapshot_tool
+from toolsfile.virtualmachinemanagement.modify_vm_network_tool import register_modify_vm_network_tool
+from toolsfile.virtualmachinemanagement.migrate_vm_tool import register_migrate_vm_tool
+from toolsfile.virtualmachinemanagement.power_vm_tools import register_vm_power_tools
 
 mcp = FastMCP("IntersightMCPServer")
 
@@ -46,6 +51,7 @@ def health_check() -> dict:
         }
     }
 
+
 @mcp.tool
 def calculate_sum(a: int, b: int) -> int:
     """Calculate sum with return annotation."""
@@ -56,13 +62,22 @@ def calculate_sum(a: int, b: int) -> int:
 # Register tools
 ##############################################################
 
-register_physical_summary_tools(mcp)
+
+# Report Tools
+register_server_data_report_tool(mcp)
 register_organization_tools(mcp)
 register_fabric_interconnect_tools(mcp)
 register_fabric_interconnect_tools(mcp)
+register_chassis_data_report_tool(mcp)
+register_dimm_mirroring_tool(mcp)
+register_intersight_alarm_tool(mcp)
 
-
-
+#Register Virtual Machine Management Tools
+register_create_vm_tool(mcp)
+register_create_vm_snapshot_tool(mcp)
+register_modify_vm_network_tool(mcp)
+# register_migrate_vm_tool(mcp)
+register_vm_power_tools(mcp)
 
 if __name__ == "__main__":
     mcp.run(transport="http", host="0.0.0.0", port=8000)
