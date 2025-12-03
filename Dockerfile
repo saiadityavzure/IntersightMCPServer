@@ -50,4 +50,4 @@ EXPOSE 8000
 # -------------------------------------------------------------
 # ENTRYPOINT to start the MCP server
 # -------------------------------------------------------------
-CMD ["fastmcp", "run", "intersight_server.py:mcp", "--host", "0.0.0.0", "--transport", "http", "--port", "8000"]
+CMD ["fastmcp", "run", "intersight_server.py:mcp", "--host", "0.0.0.0", "--transport", "sse", "--port", "8000"]
