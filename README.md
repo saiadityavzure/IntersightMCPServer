@@ -236,12 +236,6 @@ docker-compose up -d --build
 
 ---
 
-# 🤝 Contributing
-
-Pull requests welcome.
-
----
-
 # 📄 License
 
 Internal use only.

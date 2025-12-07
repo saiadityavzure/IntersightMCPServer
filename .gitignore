@@ -11,22 +11,22 @@ __pycache__/
 # ------------------------------
 # ENVIRONMENTS
 # ------------------------------
-.env
-*.env
-.venv/
-venv/
-ENV/
-env/
+# .env
+# *.env
+# .venv/
+# venv/
+# ENV/
+# env/
 
 # ------------------------------
-# INERSIGHT SENSITIVE FILES
-# ------------------------------
-NSDev01-SecretKey.txt
-*SecretKey.txt
-intersight_key.txt
-intersight_secret.txt
-*.pem
-*.key
+# # INERSIGHT SENSITIVE FILES
+# # ------------------------------
+# NSDev01-SecretKey.txt
+# *SecretKey.txt
+# intersight_key.txt
+# intersight_secret.txt
+# *.pem
+# *.key
 
 # Don't commit raw Intersight REST keys
 *.rsa
