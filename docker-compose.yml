@@ -9,8 +9,8 @@ services:
     env_file:
       - .env
     volumes:
+      - ./secret:/app/secret:ro
       - ./reports:/app/reports
       - ./toolsfile:/app/toolsfile
       - ./logs:/app/logs
-      -  ./NSDev01-SecretKey.txt:/app/secret/NSDev01-SecretKey.txt:ro
     restart: unless-stopped
