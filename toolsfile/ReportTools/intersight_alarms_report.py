@@ -19,7 +19,7 @@ def register_intersight_alarm_tool(mcp: FastMCP):
 
     @mcp.tool(
         name="get_intersight_alarms",
-        description="Fetch Critical and Warning alarms from Cisco Intersight after the provided date, and generate an XLSX report.",
+        description="Fetch Critical and Warning alarms from Cisco Intersight after the provided date.",
         tags={"alarms", "intersight", "monitoring", "report"},
         meta={"version": "1.0", "endpoint": "/cond/Alarms"},
     )

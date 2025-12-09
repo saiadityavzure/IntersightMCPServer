@@ -19,7 +19,7 @@ def register_vm_powerstatus_tool(mcp: FastMCP):
 
     @mcp.tool(
         name="get_virtual_machines_powerstatus",
-        description="Retrieve VMs by power state (on/off). Returns top 10 and Excel report.",
+        description="Retrieve VMs by power state (on/off). Returns top 10 summary.",
         tags={"virtualization", "vm", "powerstate", "report"},
         meta={"version": "1.0", "endpoint": "/virtualization/VirtualMachines"}
     )

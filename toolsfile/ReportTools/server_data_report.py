@@ -17,7 +17,7 @@ def register_server_data_report_tool(mcp: FastMCP):
 
     @mcp.tool(
         name="generate_server_data_report",
-        description="Fetches server data (compute.PhysicalSummaries) and generates a downloadable XLSX report.",
+        description="Fetches server data (compute.PhysicalSummaries).",
         tags={"compute", "server", "report"},
         meta={"version": "1.0", "endpoint": "/compute/PhysicalSummaries"},
     )

@@ -20,7 +20,7 @@ def register_chassis_data_report_tool(mcp: FastMCP):
 
     @mcp.tool(
         name="generate_chassis_data_report",
-        description="Fetches UCS Chassis information from Cisco Intersight and generates a downloadable XLSX report.",
+        description="Fetches UCS Chassis information from Cisco Intersight.",
         tags={"chassis", "ucs", "report"},
         meta={"version": "1.0", "endpoint": "/equipment/Chassis"},
     )

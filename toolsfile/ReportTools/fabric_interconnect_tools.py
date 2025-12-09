@@ -16,7 +16,7 @@ def register_fabric_interconnect_tools(mcp: FastMCP):
 
     @mcp.tool(
         name="get_fabric_interconnect_report",
-        description="Fetches Fabric Interconnect data from Cisco Intersight and builds a summary report.",
+        description="Fetches Fabric Interconnect data from Cisco Intersight and builds a summary.",
         tags={"network", "fabric-interconnect", "report"},
         meta={"version": "1.0", "endpoint": "/network/ElementSummaries"},
     )
