@@ -1,11 +1,17 @@
-import os
+# C:\IntersightMCPServer\toolsfile\ReportTools\dimm_mirroring_report.py
+
 import json
 import logging
-import pandas as pd
 import traceback
+import base64
+import io
+import os
+from urllib.parse import quote
 from datetime import datetime
 
+import pandas as pd
 from fastmcp import FastMCP
+from mcp import types as mcp_types  # ✅ important
 
 from utils.intersight_rest import get_intersight_rest_session
 
@@ -33,7 +39,7 @@ def register_dimm_mirroring_tool(mcp: FastMCP):
             # -------------------------------------------------------------------
             params = {
                 "$filter": "MirroringMode ne 'platform-default'",
-                "$select": "Moid,MirroringMode"
+                "$select": "Moid,MirroringMode",
             }
 
             bios_url = f"{base_url}/api/v1/bios/Policies"
@@ -45,18 +51,22 @@ def register_dimm_mirroring_tool(mcp: FastMCP):
             logger.info(f"BIOS policies with mirroring enabled: {bios_moid_list}")
 
             if not bios_moid_list:
-                return json.dumps({"message": "No BIOS policies found with DIMM mirroring enabled."})
+                return [
+                    mcp_types.TextContent(
+                        type="text",
+                        text=json.dumps({"message": "No BIOS policies found with DIMM mirroring enabled."}),
+                    )
+                ]
 
             # -------------------------------------------------------------------
             # STEP 3 — Find Server Profiles using these BIOS Policies
             # -------------------------------------------------------------------
             profile_url = f"{base_url}/api/v1/server/Profiles"
-
             filter_query = " or ".join([f"PolicyBucket/Moid eq '{moid}'" for moid in bios_moid_list])
 
             params = {
                 "$select": "Name,Moid",
-                "$filter": filter_query
+                "$filter": filter_query,
             }
 
             profiles_resp = session.get(profile_url, params=params)
@@ -67,13 +77,17 @@ def register_dimm_mirroring_tool(mcp: FastMCP):
             logger.info(f"Server Profiles using mirroring BIOS policies: {profile_moid_list}")
 
             if not profile_moid_list:
-                return json.dumps({"message": "No Server Profiles found using mirrored BIOS policies."})
+                return [
+                    mcp_types.TextContent(
+                        type="text",
+                        text=json.dumps({"message": "No Server Profiles found using mirrored BIOS policies."}),
+                    )
+                ]
 
             # -------------------------------------------------------------------
             # STEP 4 — Find Servers associated with those Server Profiles
             # -------------------------------------------------------------------
             server_view_url = f"{base_url}/api/v1/view/Servers"
-
             server_filter = " or ".join([f"ServerProfile/Moid eq '{moid}'" for moid in profile_moid_list])
 
             params = {"$filter": server_filter}
@@ -89,9 +103,9 @@ def register_dimm_mirroring_tool(mcp: FastMCP):
             # STEP 5 — Extract Detailed Server Data
             # -------------------------------------------------------------------
             detailed_fields = [
-                'AccountMoid', 'Name', 'Moid', 'ModTime', 'ServerHealth',
-                'TotalMemory', 'Model', 'NumCpus', 'NumEthHostInterfaces',
-                'NumFcHostInterfaces', 'MgmtIpAddress', 'UserLabel'
+                "AccountMoid", "Name", "Moid", "ModTime", "ServerHealth",
+                "TotalMemory", "Model", "NumCpus", "NumEthHostInterfaces",
+                "NumFcHostInterfaces", "MgmtIpAddress", "UserLabel",
             ]
 
             detailed_server_data = []
@@ -99,19 +113,30 @@ def register_dimm_mirroring_tool(mcp: FastMCP):
                 row = {field: server.get(field) for field in detailed_fields}
                 detailed_server_data.append(row)
 
-            # -------------------------------------------------------------------
-            # STEP 6 — Save report to /reports/
-            # -------------------------------------------------------------------
-            reports_dir = "reports"
-            os.makedirs(reports_dir, exist_ok=True)
+            if not detailed_server_data:
+                return [
+                    mcp_types.TextContent(
+                        type="text",
+                        text=json.dumps({"message": "No servers found associated with mirrored BIOS policies."}),
+                    )
+                ]
 
-            filename = f"dimm_mirroring_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.xlsx"
-            output_path = os.path.join(reports_dir, filename)
-
+            # -------------------------------------------------------------------
+            # STEP 6 — Build Excel in-memory (NO server-side write)
+            # -------------------------------------------------------------------
             df = pd.DataFrame(detailed_server_data)
-            df.to_excel(output_path, index=False)
 
-            absolute_path = os.path.abspath(output_path)
+            buf = io.BytesIO()
+            with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False, sheet_name="DIMM_Mirroring")
+
+            excel_bytes = buf.getvalue()
+            blob_b64 = base64.b64encode(excel_bytes).decode("utf-8")
+
+            # Safe filename + valid URI
+            filename = f"dimm_mirroring_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            safe_name = os.path.basename(filename)
+            uri = f"file:///{quote(safe_name)}"
 
             # -------------------------------------------------------------------
             # STEP 7 — Summary Section
@@ -119,17 +144,36 @@ def register_dimm_mirroring_tool(mcp: FastMCP):
             summary_keys = ["Name", "Model", "ServerHealth", "TotalMemory"]
             summary = [{k: d.get(k) for k in summary_keys} for d in detailed_server_data]
 
-            return json.dumps({
-                "count": len(detailed_server_data),
-                "summary": summary,
-                "download_link": absolute_path,
-                "items": detailed_server_data
-            })
+            # -------------------------------------------------------------------
+            # Return: text + embedded resource
+            # -------------------------------------------------------------------
+            return [
+                mcp_types.TextContent(
+                    type="text",
+                    text=json.dumps({
+                        "count": len(detailed_server_data),
+                        "summary": summary,
+                    }),
+                ),
+                mcp_types.EmbeddedResource(
+                    type="resource",
+                    resource=mcp_types.BlobResourceContents(
+                        uri=uri,
+                        mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        blob=blob_b64,
+                    ),
+                ),
+            ]
 
         except Exception as ex:
             logger.error("DIMM Mirroring Tool Error:\n" + traceback.format_exc())
-            return json.dumps({
-                "error": True,
-                "message": str(ex),
-                "trace": traceback.format_exc()
-            })
+            return [
+                mcp_types.TextContent(
+                    type="text",
+                    text=json.dumps({
+                        "error": True,
+                        "message": str(ex),
+                        "trace": traceback.format_exc(),
+                    }),
+                )
+            ]
