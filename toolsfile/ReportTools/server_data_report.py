@@ -1,14 +1,21 @@
+# C:\IntersightMCPServer\toolsfile\ReportTools\server_data_report.py
+
 import json
 import logging
+import traceback
+import base64
+import io
 import os
-import pandas as pd
+from urllib.parse import quote
 from datetime import datetime
 
+import pandas as pd
 from fastmcp import FastMCP
+from mcp import types as mcp_types  # ✅ important
+
 from utils.intersight_auth import intersight_client_connection
 from intersight.api import compute_api
 from intersight.exceptions import ApiException
-import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +29,6 @@ def register_server_data_report_tool(mcp: FastMCP):
         meta={"version": "1.0", "endpoint": "/compute/PhysicalSummaries"},
     )
     def generate_server_data_report():
-
         try:
             # Connect to Intersight
             client = intersight_client_connection()
@@ -35,7 +41,12 @@ def register_server_data_report_tool(mcp: FastMCP):
             total = count_resp["count"]
 
             if total == 0:
-                return json.dumps({"message": "No servers found."})
+                return [
+                    mcp_types.TextContent(
+                        type="text",
+                        text=json.dumps({"message": "No servers found."})
+                    )
+                ]
 
             batch_size = 100
             loops = total // batch_size
@@ -56,63 +67,87 @@ def register_server_data_report_tool(mcp: FastMCP):
                     skip=skip
                 )
 
-                for item in response.results:
-                    alarm = item.alarm_summary
-                    health = alarm.health if alarm else None
+                # NOTE: SDK returns response.results as objects
+                for item in getattr(response, "results", []) or []:
+                    alarm = getattr(item, "alarm_summary", None)
+                    health = getattr(alarm, "health", None) if alarm else None
 
-                    row = {
-                        "Name": item.name,
-                        "User Label": item.user_label,
+                    server_rows.append({
+                        "Name": getattr(item, "name", None),
+                        "User Label": getattr(item, "user_label", None),
                         "Health": health,
-                        "Model": item.model,
-                        "Memory Capacity": item.available_memory,
-                        "Management Mode": item.management_mode,
-                        "Management IP Address": item.mgmt_ip_address,
-                        "Firmware Version": item.firmware,
-                        "Serial": item.serial,
-                        "CPUs": item.num_cpus,
-                        "CPU Cores": item.num_cpu_cores,
-                        "Memory Speed (MHz)": item.memory_speed,
-                    }
-                    server_rows.append(row)
+                        "Model": getattr(item, "model", None),
+                        "Memory Capacity": getattr(item, "available_memory", None),
+                        "Management Mode": getattr(item, "management_mode", None),
+                        "Management IP Address": getattr(item, "mgmt_ip_address", None),
+                        "Firmware Version": getattr(item, "firmware", None),
+                        "Serial": getattr(item, "serial", None),
+                        "CPUs": getattr(item, "num_cpus", None),
+                        "CPU Cores": getattr(item, "num_cpu_cores", None),
+                        "Memory Speed (MHz)": getattr(item, "memory_speed", None),
+                    })
 
             if not server_rows:
-                return json.dumps({"message": "No server data found."})
+                return [
+                    mcp_types.TextContent(
+                        type="text",
+                        text=json.dumps({"message": "No server data found."})
+                    )
+                ]
 
-            # Summary (like your FI tool)
+            # Summary
             summary_fields = ["Name", "Health", "Model", "Firmware Version"]
-            summary = [{key: row.get(key) for key in summary_fields} for row in server_rows]
+            summary = [{k: r.get(k) for k in summary_fields} for r in server_rows]
 
-            # Timestamp file
+            # Build Excel in-memory
+            df = pd.DataFrame(server_rows)
+
+            buf = io.BytesIO()
+            with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False, sheet_name="Servers")
+
+            excel_bytes = buf.getvalue()
+            blob_b64 = base64.b64encode(excel_bytes).decode("utf-8")
+
+            # Safe filename + valid URI
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             filename = f"server_data_report_{timestamp}.xlsx"
+            safe_name = os.path.basename(filename)
+            uri = f"file:///{quote(safe_name)}"
 
-            reports_dir = "reports"
-            os.makedirs(reports_dir, exist_ok=True)
-
-            output_path = os.path.join(reports_dir, filename)
-
-            # Save XLSX
-            df = pd.DataFrame(server_rows)
-            df.to_excel(output_path, index=False)
-
-            absolute_path = os.path.abspath(output_path)
-
-            return json.dumps({
-                "count": len(server_rows),
-                "summary": summary,
-                "download_link": absolute_path,
-                "items": server_rows
-            })
+            return [
+                mcp_types.TextContent(
+                    type="text",
+                    text=json.dumps({"count": len(server_rows), "summary": summary})
+                ),
+                mcp_types.EmbeddedResource(
+                    type="resource",
+                    resource=mcp_types.BlobResourceContents(
+                        uri=uri,
+                        mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        blob=blob_b64
+                    )
+                )
+            ]
 
         except ApiException as ex:
             logger.error("Intersight API Error: " + str(ex))
-            return json.dumps({"error": True, "message": str(ex)})
+            return [
+                mcp_types.TextContent(
+                    type="text",
+                    text=json.dumps({"error": True, "message": str(ex)})
+                )
+            ]
 
         except Exception as ex:
             logger.error("Unexpected Error:\n" + traceback.format_exc())
-            return json.dumps({
-                "error": True,
-                "message": str(ex),
-                "trace": traceback.format_exc()
-            })
+            return [
+                mcp_types.TextContent(
+                    type="text",
+                    text=json.dumps({
+                        "error": True,
+                        "message": str(ex),
+                        "trace": traceback.format_exc()
+                    })
+                )
+            ]
