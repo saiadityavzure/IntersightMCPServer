@@ -1,11 +1,16 @@
 import json
 import logging
 import traceback
+import base64
+import io
 import os
-import pandas as pd
+from urllib.parse import quote
 from datetime import datetime
 
+import pandas as pd
 from fastmcp import FastMCP
+from mcp import types as mcp_types  # ✅ important
+
 from utils.intersight_auth import intersight_client_connection
 import intersight.api.network_api
 
@@ -20,15 +25,13 @@ def register_fabric_interconnect_tools(mcp: FastMCP):
         tags={"network", "fabric-interconnect", "report"},
         meta={"version": "1.0", "endpoint": "/network/ElementSummaries"},
     )
-    def get_fabric_interconnect_report() -> str:
+    def get_fabric_interconnect_report():
         """
         Returns:
-            JSON string containing:
-            - list of fabrics
-            - summary fields
-            - download link for the XLSX file
+            List of MCP content blocks:
+            - TextContent JSON (count + summary)
+            - EmbeddedResource with XLSX blob (client stores to MEDIA_ROOT)
         """
-
         try:
             # Connect to Intersight
             client = intersight_client_connection()
@@ -56,18 +59,18 @@ def register_fabric_interconnect_tools(mcp: FastMCP):
                 expand=expand_query
             )
 
-            fabric_list = response.get("results", [])
+            fabric_list = response.get("results", []) or []
             fabrics = []
 
             for fi in fabric_list:
                 orgs = [p["name"] for p in fi.get("permission_resources", [])]
 
-                ports_total = fi.get("num_ether_ports", 0)
-                ports_used = fi.get("num_ether_ports_configured", 0)
+                ports_total = fi.get("num_ether_ports", 0) or 0
+                ports_used = fi.get("num_ether_ports_configured", 0) or 0
 
                 row = {
                     "Name": fi.get("name"),
-                    "Health": fi.get("alarm_summary", {}).get("health"),
+                    "Health": (fi.get("alarm_summary") or {}).get("health"),
                     "Management IP": fi.get("out_of_band_ip_address"),
                     "Model": fi.get("model"),
                     "Expansion Modules": fi.get("num_expansion_modules"),
@@ -83,38 +86,60 @@ def register_fabric_interconnect_tools(mcp: FastMCP):
                 fabrics.append(row)
 
             if not fabrics:
-                return json.dumps({"message": "No Fabric Interconnects found."})
+                return [
+                    mcp_types.TextContent(
+                        type="text",
+                        text=json.dumps({"message": "No Fabric Interconnects found."})
+                    )
+                ]
 
-            # Create the summary list
+            # Summary
             summary_keys = ["Name", "Health", "Model", "Bundle Version"]
-            summary = [{k: fi[k] for k in summary_keys} for fi in fabrics]
+            summary = [{k: r.get(k) for k in summary_keys} for r in fabrics]
 
-            # Create timestamped filename
+            # Build Excel in-memory
+            df = pd.DataFrame(fabrics)
+            df["Organizations"] = df["Organizations"].apply(
+                lambda x: ", ".join(x) if isinstance(x, list) else x
+            )
+
+            buf = io.BytesIO()
+            with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False, sheet_name="FabricInterconnects")
+
+            excel_bytes = buf.getvalue()
+            blob_b64 = base64.b64encode(excel_bytes).decode("utf-8")
+
+            # Safe filename + valid URI
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             filename = f"fabric_interconnect_report_{timestamp}.xlsx"
+            safe_name = os.path.basename(filename)
+            uri = f"file:///{quote(safe_name)}"
 
-            # Save under /reports/
-            reports_dir = "reports"
-            os.makedirs(reports_dir, exist_ok=True)
-            output_path = os.path.join(reports_dir, filename)
-            
-
-            df = pd.DataFrame(fabrics)
-            df.to_excel(output_path, index=False)
-
-            absolute_path = os.path.abspath(output_path)
-
-            return json.dumps({
-                "count": len(fabrics),
-                "summary": summary,
-                "download_link": absolute_path,
-                "items": fabrics
-            })
+            return [
+                mcp_types.TextContent(
+                    type="text",
+                    text=json.dumps({"count": len(fabrics), "summary": summary})
+                ),
+                mcp_types.EmbeddedResource(
+                    type="resource",
+                    resource=mcp_types.BlobResourceContents(
+                        uri=uri,
+                        mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        blob=blob_b64
+                    )
+                )
+            ]
 
         except Exception as ex:
             logger.error("Error getting Fabric Interconnect report:\n" + traceback.format_exc())
-            return json.dumps({
-                "error": True,
-                "message": str(ex),
-                "trace": traceback.format_exc()
-            })
+            return [
+                mcp_types.TextContent(
+                    type="text",
+                    text=json.dumps({
+                        "error": True,
+                        "message": str(ex),
+                        "trace": traceback.format_exc()
+                    })
+                )
+            ]
