@@ -5,7 +5,7 @@ services:
     build: .
     container_name: intersight_mcp_server
     ports:
-      - "8000:8000"
+      - "8002:8000"
     env_file:
       - .env
     volumes:
